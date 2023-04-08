@@ -1,0 +1,29 @@
+{
+  "name": "image2params",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "batch": "tsx scripts/batch_transform.ts"
+  },
+  "dependencies": {
+    "ali-oss": "^6.17.1",
+    "dotenv": "^16.0.3",
+    "exifreader": "^4.12.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/ali-oss": "^6.16.7",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@vitejs/plugin-react": "^3.1.0",
+    "ts-node": "^10.9.1",
+    "tsx": "^3.12.6",
+    "typescript": "^4.9.3",
+    "vite": "^4.2.0"
+  }
+}
