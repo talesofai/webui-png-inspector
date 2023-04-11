@@ -18,8 +18,8 @@ const ossClient = new OSS({
 const dirPath = '/Users/tzwm/Downloads/to_be_upload/';
 const fileExt = '.png';
 const ossBasePath = process.env.OSS_BASE_PATH;
-const originalOSSUrl = process.env.OSS_ORIGINAL_OSS_URL;
-const ossBaseUrl = process.env.OSS_BASE_URL;
+const originalOSSUrl = process.env.OSS_ORIGINAL_OSS_URL || '';
+const ossBaseUrl = process.env.OSS_BASE_URL || '';
 
 let data: {[key: string]: any} = {};
 
@@ -117,21 +117,31 @@ function jsonToTargetParams(key: string): object {
   }
 }
 
-function validParameters(key: string): string {
+function validParameters(key: string): Array<string> {
   const dd = data[key];
+  let errors = [];
+
+  // check controlnet
   for (const i in dd['controlnet']) {
     let str = `ControlNet-${i}`;
     if (dd['output'].indexOf(str) < 0) {
-      return `not found ControlNet-${i} in the parameters`;
+      errors.push(`not found ControlNet-${i} in the parameters`);
     }
   }
 
-  return 'valid';
+  // check width and height
+  const MAX_SIZE = 512;
+  if (dd['targetParams']['width'] > MAX_SIZE || dd['targetParams']['height'] > MAX_SIZE) {
+    errors.push(`the width or height is larger than ${MAX_SIZE}`);
+  }
+
+  return errors;
 }
 
 async function writeParameters(key: string) {
   const dd = data[key];
   const output = [
+    dd['errors'].join("\n"),
     dd['original'],
     getParameters(key),
     JSON.stringify(dd['targetPrompts'], null, 2),
@@ -180,19 +190,17 @@ async function main() {
   }
 
   for (const key in data) {
-    const isValid = validParameters(key);
-    if (isValid != 'valid') {
-      console.log('error:', key, isValid);
-      continue;
-    }
-
     data[key]['json'] = paramsToJSON(key);
     data[key]['targetParams'] = jsonToTargetParams(key);
     data[key]['targetPrompts'] = jsonToTargetPrompts(key);
+
+    data[key]['errors'] = validParameters(key);
+    if (data[key]['errors'].length > 0) {
+      console.log('error:', key, data[key]['errors']);
+    }
+
     writeParameters(key);
   }
-
-  //console.log(data);
 }
 
 main();
