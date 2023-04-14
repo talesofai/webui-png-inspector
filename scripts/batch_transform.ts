@@ -141,7 +141,7 @@ function validParameters(key: string): Array<string> {
 async function writeParameters(key: string) {
   const dd = data[key];
   const output = [
-    dd['errors'].join("\n"),
+    'errors: ' + dd['errors'].join("\n"),
     dd['original'],
     getParameters(key),
     JSON.stringify(dd['targetPrompts'], null, 2),
