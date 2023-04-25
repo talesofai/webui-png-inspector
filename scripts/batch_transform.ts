@@ -15,7 +15,7 @@ const ossClient = new OSS({
 });
 
 // 指定目录路径和文件后缀名
-const dirPath = '/Users/tzwm/Downloads/to_be_upload/';
+const dirPath = '/Users/tzwm/Downloads/to_be_upload/0425/';
 const fileExt = '.png';
 const ossBasePath = process.env.OSS_BASE_PATH;
 const originalOSSUrl = process.env.OSS_ORIGINAL_OSS_URL || '';
@@ -104,7 +104,7 @@ function jsonToTargetParams(key: string): object {
     });
   }
 
-  return {
+  let ret: {[key: string]: any} = {
     "extra_jobs": "",
     "task_name": "make_image_with_webui",
     "steps": +d['Steps'],
@@ -114,7 +114,16 @@ function jsonToTargetParams(key: string): object {
     "height": +height,
     "base_model_name": d['Model'],
     "controlnet_units": controlnetUnits,
+  };
+
+  if (d['Hires upscale']) {
+    ret['enable_hr'] = true;
+    ret['hr_upscaler'] = d['Hires upscaler'];
+    ret['hr_scale'] = d['Hires upscale'];
+    ret['denoising_strength'] = d['Denoising strength'];
   }
+
+  return ret;
 }
 
 function validParameters(key: string): Array<string> {
