@@ -119,8 +119,9 @@ function jsonToTargetParams(key: string): object {
   if (d['Hires upscale']) {
     ret['enable_hr'] = true;
     ret['hr_upscaler'] = d['Hires upscaler'];
-    ret['hr_scale'] = d['Hires upscale'];
-    ret['denoising_strength'] = d['Denoising strength'];
+    ret['hr_scale'] = +d['Hires upscale'];
+    ret['denoising_strength'] = +d['Denoising strength'];
+    ret['hr_second_pass_steps'] = +d['Hires steps'];
   }
 
   return ret;
