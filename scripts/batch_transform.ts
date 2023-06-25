@@ -67,7 +67,7 @@ function paramsToJSON(key: string) {
     'negative': params[1].split(':')[1].trim(),
   }
 
-  const regex = /(\w+\s?\d?): (("[^"]*")|\S+)/g;
+  const regex = /(\w+\s?[\d\w]+): (("[^"]*")|\S+)/g;
   const args: { [key: string]: string } = {};
   let match: RegExpExecArray | null;
   while ((match = regex.exec(params[2])) !== null) {
@@ -125,9 +125,13 @@ function jsonToTargetParams(key: string): object {
     }
     let cn = d[preStr];
 
+    let inputImage = data[key]['controlnet'][i.toString()];
     let module = cn['preprocessor'];
     if (module == 'tile_resample') {
       module = 'none';
+      if (!inputImage) {
+        inputImage = data[key]['original'];
+      }
     }
 
     controlnetUnits.push({
@@ -142,19 +146,27 @@ function jsonToTargetParams(key: string): object {
       "weight": +cn['weight'],
       "control_mode": cn['control mode'],
       "pixel_perfect": cn['pixel perfect'] == "True" ? true : false,
-      //"input_image": data[key]['controlnet'][i.toString()],
+      "input_image": inputImage,
     });
   }
 
+  let sampler = d['Sampler'];
+  if (sampler == 'DPM++') {
+    sampler = 'DPM++ SDE Karras';
+  }
+  let baseModel = d['Model'];
+  if (baseModel == 'AnythingV5V3_v5PrtRE') {
+    baseModel = 'AnythingV5_v5PrtRE';
+  }
   let ret: {[key: string]: any} = {
     "extra_jobs": "",
     "task_name": "make_image_with_webui",
-    "steps": +d['Steps'],
-    "sampler_index": d['Sampler'],
+    "steps": +d['Steps'] > 20 ? 20 : +d['Steps'],
+    "sampler_index": sampler,
     "cfg_scale": +d['CFG scale'],
     "width": +width,
     "height": +height,
-    "base_model_name": d['Model'],
+    "base_model_name": baseModel,
     "controlnet_units": controlnetUnits,
   };
 
@@ -222,7 +234,7 @@ async function main() {
 
     switch(type) {
       case 'original':
-        //data[key][type] = await uploadFileToOSS(files[i]);
+        data[key][type] = await uploadFileToOSS(files[i]);
         break;
       case 'output':
         data[key][type] = await readITXtChunk(files[i]);
@@ -231,7 +243,7 @@ async function main() {
         if (!data[key][type]) {
           data[key][type] = {};
         }
-        //data[key][type][parts[3]] = await uploadFileToOSS(files[i]);
+        data[key][type][parts[3]] = await uploadFileToOSS(files[i]);
         break;
       default:
         delete data[key];
