@@ -15,7 +15,7 @@ const ossClient = new OSS({
 });
 
 // 指定目录路径和文件后缀名
-const dirPath = '/Users/tzwm/Downloads/to_be_upload/0425/';
+const dirPath = '/Users/tzwm/Downloads/tmp/梗图修改_v2.zip/';
 const fileExt = '.png';
 const ossBasePath = process.env.OSS_BASE_PATH;
 const originalOSSUrl = process.env.OSS_ORIGINAL_OSS_URL || '';
@@ -60,16 +60,50 @@ function getParameters(key: string): string {
 }
 
 function paramsToJSON(key: string) {
-  const params = data[key]['output'].split("\n");
+  const params = data[key]['output'].split("\n")
+    .filter((s: string) => s.trim() != "");
   const json = {
     'prompt': params[0],
     'negative': params[1].split(':')[1].trim(),
   }
 
-  return { ...json, ...params[2].split(',').reduce((result: object, item: string) => {
-    const [k, v] = item.trim().split(':');
-    return k && v ? { ...result, [k.trim()]: v.trim() } : result;
-  }, {})};
+  const regex = /(\w+\s?\d?): (("[^"]*")|\S+)/g;
+  const args: { [key: string]: string } = {};
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(params[2])) !== null) {
+    const key = match[1];
+    const value = match[2].trim().replace(/"/g, '').replace(/,$/, '');
+    args[key] = value;
+  }
+  for (const i in [0, 1, 2, 3, 4]) {
+    const preStr = `ControlNet ${i}`;
+    if (!args[preStr]) {
+      continue;
+    }
+
+    args[preStr] = args[preStr];
+      //.replace('starting/ending', 'starting_ending');
+    const regex = /(\w+[ \/]?\w+): ((?:\([^)]*\)|\[[^\]]*\]|[^,])+)(?:, )?/g;
+    const cn: any = {};
+    let match;
+    while ((match = regex.exec(args[preStr]))) {
+      const key = match[1];
+      const value = match[2];
+      cn[key] = value;
+    }
+    if (cn['starting/ending']) {
+      const regex = /\d+\.?\d*/g;
+      const matches = cn['starting/ending'].match(regex);
+      if (matches) {
+        const numbers = matches.map(parseFloat);
+        cn['starting'] = numbers[0];
+        cn['ending'] = numbers[1];
+      }
+    }
+    args[preStr] = cn;
+  }
+
+  return { ...json, ...args };
 }
 
 function jsonToTargetPrompts(key: string): object {
@@ -85,22 +119,30 @@ function jsonToTargetParams(key: string): object {
 
   let controlnetUnits = [];
   for (const i in [0, 1, 2, 3, 4]) {
-    const preStr = `ControlNet-${i}`;
+    const preStr = `ControlNet ${i}`;
     if (!data[key]['output'].match(preStr)) {
       continue;
+    }
+    let cn = d[preStr];
+
+    let module = cn['preprocessor'];
+    if (module == 'tile_resample') {
+      module = 'none';
     }
 
     controlnetUnits.push({
       "mask": "",
-      "module": d[preStr + ' Module'],
+      "module": module,
       "lowvram": false,
-      "guessmode": false,
-      "resize_mode": "Scale to Fit (Inner Fit)",
-      "guidance_start": +d[preStr + ' Guidance Start'],
-      "guidance_end": +d[preStr + ' Guidance End'],
-      "model": d[preStr + ' Model'],
-      "weight": +d[preStr + ' Weight'],
-      "input_image": data[key]['controlnet'][i.toString()],
+      //"guessmode": false,
+      "resize_mode": cn['resize mode'],
+      "guidance_start": +cn['starting'],
+      "guidance_end": +cn['ending'],
+      "model": cn['model'],
+      "weight": +cn['weight'],
+      "control_mode": cn['control mode'],
+      "pixel_perfect": cn['pixel perfect'] == "True" ? true : false,
+      //"input_image": data[key]['controlnet'][i.toString()],
     });
   }
 
@@ -141,8 +183,8 @@ function validParameters(key: string): Array<string> {
 
   // check width and height
   const MAX_SIZE = 512;
-  if (dd['targetParams']['width'] > MAX_SIZE || dd['targetParams']['height'] > MAX_SIZE) {
-    errors.push(`the width or height is larger than ${MAX_SIZE}`);
+  if (dd['targetParams']['width'] > MAX_SIZE && dd['targetParams']['height'] > MAX_SIZE) {
+    errors.push(`the width and height are larger than ${MAX_SIZE}`);
   }
 
   return errors;
@@ -180,7 +222,7 @@ async function main() {
 
     switch(type) {
       case 'original':
-        data[key][type] = await uploadFileToOSS(files[i]);
+        //data[key][type] = await uploadFileToOSS(files[i]);
         break;
       case 'output':
         data[key][type] = await readITXtChunk(files[i]);
@@ -189,7 +231,7 @@ async function main() {
         if (!data[key][type]) {
           data[key][type] = {};
         }
-        data[key][type][parts[3]] = await uploadFileToOSS(files[i]);
+        //data[key][type][parts[3]] = await uploadFileToOSS(files[i]);
         break;
       default:
         delete data[key];
