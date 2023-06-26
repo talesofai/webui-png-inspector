@@ -3,6 +3,7 @@ import * as path from 'path';
 import OSS from 'ali-oss';
 import ExifReader from 'exifreader';
 import * as dotenv from 'dotenv';
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
 
@@ -16,7 +17,7 @@ const ossClient = new OSS({
 
 // 指定目录路径和文件后缀名
 const dirPath = '/Users/tzwm/Downloads/tmp/梗图修改_v2.zip/新梗图';
-const fileExt = '.png';
+const fileExt = /\.(png|jpg|jpeg)$/i;
 const ossBasePath = process.env.OSS_BASE_PATH;
 const originalOSSUrl = process.env.OSS_ORIGINAL_OSS_URL || '';
 const ossBaseUrl = process.env.OSS_BASE_URL || '';
@@ -126,13 +127,13 @@ function jsonToTargetParams(key: string): object {
     let cn = d[preStr];
 
     let inputImage = data[key]['controlnet'][i.toString()];
-    let module = cn['preprocessor'];
-    if (module == 'tile_resample') {
-      module = 'none';
-      if (!inputImage) {
-        inputImage = data[key]['original'];
-      }
-    }
+    let module = 'none'; // cn['preprocessor'];
+    //if (module == 'tile_resample' || module == '') {
+      //module = 'none';
+      //if (!inputImage) {
+        //inputImage = data[key]['original'];
+      //}
+    //}
 
     controlnetUnits.push({
       "mask": "",
@@ -210,6 +211,7 @@ async function writeParameters(key: string) {
     getParameters(key),
     JSON.stringify(dd['targetPrompts'], null, 2),
     JSON.stringify(dd['targetParams'], null, 2),
+    JSON.stringify(dd['styleConfig'], null, 2),
   ].join("\n\n");
 
   fs.writeFile(`${dirPath}/${key}.txt`, output, (error) => {
@@ -218,10 +220,22 @@ async function writeParameters(key: string) {
   });
 }
 
+function getStyleConfig(key: string) {
+  return {
+    uuid: uuidv4(),
+    name: '这一刻，想说点什么..',
+    value: '梗:',
+    cover: data[key]['original'],
+    width: data[key]['json']['width'],
+    height: data[key]['json']['height'],
+    type: 'style',
+  }
+}
+
 async function main() {
   const files = await fs.promises.readdir(dirPath);
   for (let i = 0; i < files.length; i++) {
-    if (!files[i].endsWith(fileExt)) {
+    if (!fileExt.test(files[i])) {
       continue;
     }
 
@@ -256,10 +270,12 @@ async function main() {
     }
   }
 
+
   for (const key in data) {
     data[key]['json'] = paramsToJSON(key);
     data[key]['targetParams'] = jsonToTargetParams(key);
     data[key]['targetPrompts'] = jsonToTargetPrompts(key);
+    data[key]['styleConfig'] = getStyleConfig(key);
 
     data[key]['errors'] = validParameters(key);
     if (data[key]['errors'].length > 0) {
