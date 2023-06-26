@@ -15,7 +15,7 @@ const ossClient = new OSS({
 });
 
 // 指定目录路径和文件后缀名
-const dirPath = '/Users/tzwm/Downloads/tmp/梗图修改_v2.zip/';
+const dirPath = '/Users/tzwm/Downloads/tmp/梗图修改_v2.zip/新梗图';
 const fileExt = '.png';
 const ossBasePath = process.env.OSS_BASE_PATH;
 const originalOSSUrl = process.env.OSS_ORIGINAL_OSS_URL || '';
@@ -251,6 +251,9 @@ async function main() {
         continue;
     }
 
+    if (!data[key]['controlnet']) {
+      data[key]['controlnet'] = {};
+    }
   }
 
   for (const key in data) {
