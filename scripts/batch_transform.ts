@@ -126,7 +126,7 @@ function jsonToTargetParams(key: string): object {
     }
     let cn = d[preStr];
 
-    let inputImage = data[key]['controlnet'][i.toString()];
+    let inputImage = data[key]['controlnet'][i.toString()] || data[key]['original'];
     let module = 'none'; // cn['preprocessor'];
     //if (module == 'tile_resample' || module == '') {
       //module = 'none';
@@ -226,8 +226,8 @@ function getStyleConfig(key: string) {
     name: '这一刻，想说点什么..',
     value: '梗:',
     cover: data[key]['original'],
-    width: data[key]['json']['width'],
-    height: data[key]['json']['height'],
+    width: data[key]['targetParams']['width'],
+    height: data[key]['targetParams']['height'],
     type: 'style',
   }
 }
