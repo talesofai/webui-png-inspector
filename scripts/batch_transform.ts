@@ -16,7 +16,7 @@ const ossClient = new OSS({
 });
 
 // 指定目录路径和文件后缀名
-const dirPath = '/Users/tzwm/Downloads/tmp/梗图修改_v2.zip/新梗图';
+const dirPath = '/Users/tzwm/Downloads/tmp/梗图修改_v2.zip/cai/';
 const fileExt = /\.(png|jpg|jpeg)$/i;
 const ossBasePath = process.env.OSS_BASE_PATH;
 const originalOSSUrl = process.env.OSS_ORIGINAL_OSS_URL || '';
@@ -224,7 +224,7 @@ function getStyleConfig(key: string) {
   return {
     uuid: uuidv4(),
     name: '这一刻，想说点什么..',
-    value: '梗:',
+    value: '梗:key',
     cover: data[key]['original'],
     width: data[key]['targetParams']['width'],
     height: data[key]['targetParams']['height'],
